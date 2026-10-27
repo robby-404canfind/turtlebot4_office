@@ -8,7 +8,7 @@ On Ubuntu 26.04 with ROS 2 Lyrical and rosdep configured:
 
 ```bash
 cd ~/ros2_ws/src
-git clone --branch v0.1.0 https://github.com/robby-404canfind/turtlebot4_office.git
+git clone --branch v0.1.1 https://github.com/robby-404canfind/turtlebot4_office.git
 cd ~/ros2_ws
 rosdep install --from-paths src/turtlebot4_office --ignore-src -r -y --rosdistro lyrical
 colcon build --symlink-install --packages-select turtlebot4_office

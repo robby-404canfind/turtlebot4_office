@@ -23,6 +23,6 @@ The unmodified historical Python sample also accepted a goal at the robot's curr
 
 The supplied occupancy map was saved from an actual SLAM Toolbox run. It covers the tested rooms and connecting routes, with other areas still unknown. Earlier temporary wall-projection guidance and attempts to navigate in unmapped areas were preparation experiments, not successful course runs. A supplied map is not a guarantee that every office room or arbitrary goal is reachable.
 
-Navigation was shut down through its lifecycle manager while simulation time was running, then the navigation and simulator processes exited after SIGINT without remaining descendants.
+Navigation was shut down through its lifecycle manager while simulation time was running, then the navigation and simulator processes exited after SIGINT without remaining descendants. One composed Nav2 container reported exit code -6 during shutdown, and the Python display node printed KeyboardInterrupt; these shutdown diagnostics occurred after successful navigation and lifecycle shutdown. They are retained as a runtime limitation, not counted as a clean zero-error shutdown.
 
 The optional standalone SLAM launch is included for remapping; the four goal-interface checks above used AMCL with the supplied map. Other ROS distributions and hardware have not been validated by this release.
