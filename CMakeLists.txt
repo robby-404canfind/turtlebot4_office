@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20)
+project(turtlebot4_office)
+find_package(ament_cmake REQUIRED)
+install(DIRECTORY launch config rviz maps worlds models DESTINATION share/${PROJECT_NAME})
+install(PROGRAMS scripts/shutdown_navigation.py DESTINATION lib/${PROJECT_NAME} RENAME shutdown_navigation)
+install(PROGRAMS scripts/nav_to_pose_client.py DESTINATION lib/${PROJECT_NAME} RENAME nav_to_pose_client)
+install(PROGRAMS scripts/trajectory_path.py DESTINATION lib/${PROJECT_NAME} RENAME trajectory_path)
+ament_package()
