@@ -17,6 +17,7 @@ def generate_launch_description():
         DeclareLaunchArgument('map', default_value=os.path.join(share, 'maps', 'office.yaml')),
         DeclareLaunchArgument('params_file', default_value=os.path.join(share, 'config', 'nav2.yaml')),
         DeclareLaunchArgument('use_rviz', default_value='true'),
+        DeclareLaunchArgument('rviz_config', default_value=os.path.join(share, 'rviz', 'navigation.rviz')),
         DeclareLaunchArgument('use_composition', default_value='true'),
         IncludeLaunchDescription(PythonLaunchDescriptionSource(os.path.join(nav2, 'launch', 'bringup_launch.py')),
             launch_arguments={
@@ -27,6 +28,6 @@ def generate_launch_description():
         Node(package='turtlebot4_office', executable='trajectory_path',
              parameters=[{'use_sim_time': True}]),
         Node(package='rviz2', executable='rviz2', name='rviz2',
-             arguments=['-d', os.path.join(share, 'rviz', 'navigation.rviz')],
+             arguments=['-d', LaunchConfiguration('rviz_config')],
              parameters=[{'use_sim_time': True}], condition=IfCondition(LaunchConfiguration('use_rviz'))),
     ])

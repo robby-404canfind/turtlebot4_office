@@ -26,3 +26,32 @@ The supplied occupancy map was saved from an actual SLAM Toolbox run. It covers 
 Navigation was shut down through its lifecycle manager while simulation time was running, then the navigation and simulator processes exited after SIGINT without remaining descendants. One composed Nav2 container reported exit code -6 during shutdown, and the Python display node printed KeyboardInterrupt; these shutdown diagnostics occurred after successful navigation and lifecycle shutdown. They are retained as a runtime limitation, not counted as a clean zero-error shutdown.
 
 The optional standalone SLAM launch is included for remapping; the four goal-interface checks above used AMCL with the supplied map. Other ROS distributions and hardware have not been validated by this release.
+
+## 0.2.0: parameter tuning
+
+The Ch02 tuning launch was additionally tested on the same Ubuntu/ROS/Gazebo setup, with Nav2 1.5.2. The Ch01 default MPPI configuration is unchanged.
+
+| Exercise | Observed result |
+| --- | --- |
+| NavFn Dijkstra / A* | Both ComputePathToPose requests succeeded; paths may overlap or differ |
+| ThetaStar traversal cost 0.1 / 10.0 | Same start and goal, paths 6.706 / 7.848 m; the higher-cost result stayed farther from the wall in RViz |
+| DWB limits 0.5 / 0.15 m/s | Fresh identical starts; 20.407 / 59.905 simulation seconds; measured maximum and 90th-percentile speeds approximately matched the limits; both succeeded and stopped |
+| Simple / Pose progress checker, 1 s allowance | Half-turn request: Simple aborted with error 105; Pose (0.1 rad progress threshold) succeeded |
+| Goal yaw tolerance 1.0 / 0.25 rad | Both succeeded, with final sampled heading differences approximately 0.931 / 0.250 rad; green requested-heading marker and robot axes were inspected in RViz |
+| StoppedGoalChecker | With translation/angular thresholds 0.25, succeeded and subsequently settled to zero velocity |
+| SimpleSmoother w_data 0.8 / 0.05 | Identical real NavFn input, w_smooth=0.3 and identical refinement; maximum adjacent-segment turn 18.10 / 3.07 degrees, compared with 83.66 degrees in the input; collision checks passed |
+| Follow smoothed path | From a fresh default spawn and actual estimated starting pose: succeeded in 21.370 simulation seconds; actual movement and zero final velocity confirmed |
+| Return home | NavigateToPose succeeded using the supplied tuning Behavior Tree; actual return movement and stop confirmed |
+| Ctrl+C during motion | Final installed helper cancelled FollowPath; server confirmed cancellation and measured linear/angular velocities settled to zero |
+
+Path shape measurements describe the computed path, not robot steering angles. Clearance measurements used privately during validation were distances to occupied-cell centers, not a guaranteed robot-body safety margin. Normal localization and odometry differences are retained.
+
+The tuning Behavior Tree passes the selected checker/path handler IDs to FollowPath. The installed upstream default tree selected those IDs but did not pass them, causing rejection when multiple goal checkers were loaded. Ch01 uses a single checker and its default configuration was retained.
+
+SimpleSmoother reads weights during configuration; a successful parameter-set response alone does not establish a changed algorithm. The two comparison profiles differ only in w_data. Smoothing is explicitly requested by this helper and is not automatically inserted into ordinary Nav2 goals.
+
+Preparation failures were retained separately from successful final runs: aggressive smoothing of decimated paths failed collision checking; a 0.05 rad/s stopped-velocity threshold could fail to settle before progress timeout; an early fixed-start smoothed-path follow after an approximate return home failed. The final lesson requires a fresh start for that comparison and plans from the actual estimated pose. A verifier TF-discovery race and an early helper attribute-name collision were also corrected. Repeated Ctrl+C signals are ignored while cancelling an action so cancellation can complete.
+
+Lyrical DWB does not consume the historical FollowPath.transform_tolerance or FollowPath.stateful settings; those keys were removed from the tuning configuration. FeasiblePathHandler obtains the transform tolerance from the local costmap (0.3 s here). Goal-checker stateful behavior is a separate active setting.
+
+Dependency checks and builds passed. Actual Ubuntu/RViz screens were inspected through RustDesk. Navigation lifecycle shutdown was requested with simulation time running before SIGINT; no tracked descendants remained. Upstream container/bridge/RViz shutdown diagnostics are distinguished from the successful runtime exercises in the private validation record.
