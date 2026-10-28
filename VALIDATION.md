@@ -79,3 +79,27 @@ From the default spawn the original 1 m forward command correctly stopped after 
 An attempt to reload the RViz configuration in a running RViz instance raised a duplicate `base_frame` parameter error in upstream code. Launching a fresh RViz with the supplied configuration displayed correctly. Runtime verification is separate from this reload limitation and upstream shutdown diagnostics.
 
 An explicitly empty `plugin_lib_names: []` entry triggered a launch parameter tuple-conversion error in the current composed launch. The final profile omits that optional key and uses Nav2's declared empty default for additional libraries. Built-in BT nodes still load automatically.
+
+## 0.4.0: costmap layers
+
+Validated on 2026-10-28 with Nav2 1.5.2. The complete costmap profile retains the default MPPI controller and adds a focused RViz layout and an installed Gazebo obstacle helper. Earlier navigation, tuning and behavior profiles are unchanged.
+
+| Check | Observed result |
+| --- | --- |
+| Fresh costmap launch and goal (6, 4), yaw 0 | SUCCEEDED; actual movement and zero final velocity confirmed |
+| Installed obstacle helper | Added the orange box to the running Office world; its observed faces appeared in global and local costmaps |
+| Fixed start (6, 4), goal (8, 4), global obstacle layer on / off | Both plans succeeded; minimum path-point distance to observed added-obstacle lethal-cell centers changed from 0.399 m to 0.0086 m |
+| RQt global obstacle checkbox | Actual GUI mouse/keyboard operation toggled the parameter true/false; local voxel observations remained enabled |
+| Student action CLI with the global obstacle layer disabled | ABORTED with error 105 after recovery attempts; actual travel 1.051 m and zero final velocity confirmed |
+| Restore global obstacle layer and remove the box, same goal | SUCCEEDED, actual movement and zero final velocity confirmed |
+| Inflation factor 1.0 / 10.0, radius 0.7 | Identical static geometry; 18,131 differing nonlethal cells all had lower costs at factor 10.0, with none higher; factor 3.0 and obstacle layer restored |
+| Local width / height 3 m → 5 m → 3 m | Grid changed 60 × 60 → 100 × 100 → 60 × 60 at 0.05 m/cell |
+| Global static map | Grid follows the received map: 293 × 274 cells at 0.05 m/cell |
+| Voxel grid | Actual dimensions 60 × 60 × 16; vertical resolution 0.05 m, total vertical span 0.8 m |
+| Unknown-space inflation flags | `inflate_unknown` wrote gradient costs into 13,849 formerly unknown cells; `inflate_around_unknown` increased costs in 7,838 known cells; both flags restored to false |
+
+Plan-to-cell measurements are not guaranteed robot-body clearance. Navigation outcomes depend on geometry and controller settings; disabling the global obstacle layer does not imply every goal must fail. Inflation comparisons used a stationary robot and static geometry with the obstacle layer temporarily disabled, then restored. Runtime parameters and the supplied YAML were compared with the teaching examples. Defaults, types and API behavior were checked against the matching official Nav2 1.5.2 sources.
+
+The final installed helper was exercised from fresh interactive shells using Gazebo's default partition. An earlier private test used a custom partition; a helper launched outside that partition could not discover its world. No validation-only partition is built into this package.
+
+Actual Ubuntu Gazebo, RViz and RQt screens were inspected through RustDesk. Wheel odometry and true displacement were allowed to differ naturally. Shutdown diagnostics are recorded separately from successful runtime behavior.

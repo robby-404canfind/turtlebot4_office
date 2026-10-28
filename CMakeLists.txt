@@ -6,4 +6,5 @@ install(PROGRAMS scripts/shutdown_navigation.py DESTINATION lib/${PROJECT_NAME} 
 install(PROGRAMS scripts/nav_to_pose_client.py DESTINATION lib/${PROJECT_NAME} RENAME nav_to_pose_client)
 install(PROGRAMS scripts/trajectory_path.py DESTINATION lib/${PROJECT_NAME} RENAME trajectory_path)
 install(PROGRAMS scripts/parameter_tuning.py DESTINATION lib/${PROJECT_NAME} RENAME parameter_tuning)
+install(PROGRAMS scripts/costmap_obstacle.py DESTINATION lib/${PROJECT_NAME} RENAME costmap_obstacle)
 ament_package()

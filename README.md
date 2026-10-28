@@ -8,7 +8,7 @@ On Ubuntu 26.04 with ROS 2 Lyrical and rosdep configured:
 
 ```bash
 cd ~/ros2_ws/src
-git clone --branch v0.3.0 https://github.com/robby-404canfind/turtlebot4_office.git
+git clone --branch v0.4.0 https://github.com/robby-404canfind/turtlebot4_office.git
 cd ~/ros2_ws
 rosdep install --from-paths src/turtlebot4_office --ignore-src -r -y --rosdistro lyrical
 colcon build --symlink-install --packages-select turtlebot4_office
@@ -130,6 +130,46 @@ ros2 action send_goal /spin nav2_msgs/action/Spin "{target_yaw: 3.14}"
 Wait for each action to finish and the robot to stop before the next command. Collision checking stays enabled. The velocity pipeline uses `TwistStamped`, including AssistedTeleop input on `/cmd_vel_teleop`. Stopping a teleop input publisher alone does not end AssistedTeleop: send zero velocity and cancel its action or publish `std_msgs/msg/Empty` to `/preempt_teleop`.
 
 The custom tree uses BehaviorTree.CPP 4 `SequenceWithMemory`. Built-in Nav2 BT libraries are loaded automatically. Blackboard parameter names are scoped under each navigator, and `error_code_name_prefixes` contains prefixes without `_error_code`. An invalid explicit XML path aborts the goal; it does not fall back to the package default.
+
+## Costmap layers
+
+Start the simulator, then use this complete navigation profile in another sourced terminal:
+
+```bash
+ros2 launch turtlebot4_office costmap.launch.py
+```
+
+It uses `config/costmap.yaml` and `rviz/costmap.rviz`. Run only one navigation launch at a time. After editing YAML, restart navigation and simulation to compare from the same default spawn and localization seed.
+
+First move to map (6, 4), yaw zero, and wait for the robot to stop:
+
+```bash
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: {header: {frame_id: map}, pose: {position: {x: 6.0, y: 4.0}, orientation: {w: 1.0}}}}"
+ros2 run turtlebot4_office costmap_obstacle add
+```
+
+The helper adds a static orange box, 0.6 × 0.6 × 0.8 m, at Office world coordinates (11.25, -5.35, 0.4). This location is specific to the supplied world and map. Sensor-observed faces appear in both costmaps. Toggle **Global Costmap** and **Local Costmap** in RViz to inspect them separately.
+
+```bash
+ros2 run rqt_reconfigure rqt_reconfigure
+```
+
+Refresh the node list if needed. Select `/global_costmap/global_costmap`, filter `obstacle_layer`, and uncheck `obstacle_layer.enabled`. Leave the local `voxel_layer.enabled` enabled. Then request the goal beyond the box:
+
+```bash
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: {header: {frame_id: map}, pose: {position: {x: 8.0, y: 4.0}, orientation: {w: 1.0}}}}"
+```
+
+The global path omits the added obstacle while the local controller still sees it. The tested placement ended with error 105, `Failed to make progress`, after recovery attempts; other arrangements or controllers may find a way around it. Wait for the action to finish before changing the setup. Re-enable the global obstacle layer and remove the box after the exercise:
+
+```bash
+ros2 param set /global_costmap/global_costmap obstacle_layer.enabled true
+ros2 run turtlebot4_office costmap_obstacle remove
+```
+
+For an inflation comparison, keep the robot stationary, display only Global Costmap, temporarily disable its obstacle layer to compare static geometry, and apply `inflation_layer.cost_scaling_factor` values 1.0 and 10.0 individually. Wait for each display update. Keep `inflation_radius=0.7` unchanged. A larger factor makes costs decrease faster with distance; it does not increase costs at the same distance. Restore factor 3.0 and the obstacle layer afterwards.
+
+`update_frequency` updates the internal costmap; `publish_frequency` controls external publication. `rolling_window` moves the map origin with the robot. The local voxel grid has 16 vertical cells at 0.05 m each, spanning 0.8 m; `max_obstacle_height=2.0` does not enlarge that grid. The supplied LaserScan observes one height plane.
 
 ## Stop
 
