@@ -8,7 +8,7 @@ On Ubuntu 26.04 with ROS 2 Lyrical and rosdep configured:
 
 ```bash
 cd ~/ros2_ws/src
-git clone --branch v0.2.0 https://github.com/robby-404canfind/turtlebot4_office.git
+git clone --branch v0.3.0 https://github.com/robby-404canfind/turtlebot4_office.git
 cd ~/ros2_ws
 rosdep install --from-paths src/turtlebot4_office --ignore-src -r -y --rosdistro lyrical
 colcon build --symlink-install --packages-select turtlebot4_office
@@ -107,6 +107,29 @@ The first case is expected to abort with error 105 because SimpleProgressChecker
 With normal progress settings, compare `general_goal_checker.yaw_goal_tolerance` at `1.0` and `0.25`, running `rotate --progress-checker pose_progress_checker` after each change. Restore `0.25` afterwards. To also require a low measured speed, add `--goal-checker stopped_goal_checker` (configured translation/angular speed thresholds: `0.25`). Goal checker tolerances and DWB's near-goal rotation window are separate settings.
 
 Complete each movement before the next request. Ctrl+C cancels an active action. Stop navigation before simulation, while `/clock` is still running. If restarting navigation alone after moving, correct the AMCL initial estimate; restarting simulation as well restores the matching default spawn.
+
+## Behaviors and BT Navigator
+
+Start the simulator, then run this launch in a separate sourced terminal:
+
+```bash
+ros2 launch turtlebot4_office behavior.launch.py
+```
+
+It uses `config/behavior.yaml`, the MPPI controller, five Behavior Server plugins and `behavior_trees/behavior.xml` as the default NavigateToPose tree. Run one navigation launch at a time. After editing behavior parameters or the XML, stop navigation before simulation and restart both for matching initial conditions.
+
+Move into open space before testing straight-line behaviors; the default spawn faces nearby obstacles:
+
+```bash
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: {header: {frame_id: map}, pose: {position: {x: 6.0, y: 4.0}, orientation: {w: 1.0}}}}"
+ros2 action send_goal /drive_on_heading nav2_msgs/action/DriveOnHeading "{target: {x: 1.0, y: 0.0, z: 0.0}, speed: 0.2}"
+ros2 action send_goal /backup nav2_msgs/action/BackUp "{target: {x: -0.5, y: 0.0, z: 0.0}, speed: 0.2}"
+ros2 action send_goal /spin nav2_msgs/action/Spin "{target_yaw: 3.14}"
+```
+
+Wait for each action to finish and the robot to stop before the next command. Collision checking stays enabled. The velocity pipeline uses `TwistStamped`, including AssistedTeleop input on `/cmd_vel_teleop`. Stopping a teleop input publisher alone does not end AssistedTeleop: send zero velocity and cancel its action or publish `std_msgs/msg/Empty` to `/preempt_teleop`.
+
+The custom tree uses BehaviorTree.CPP 4 `SequenceWithMemory`. Built-in Nav2 BT libraries are loaded automatically. Blackboard parameter names are scoped under each navigator, and `error_code_name_prefixes` contains prefixes without `_error_code`. An invalid explicit XML path aborts the goal; it does not fall back to the package default.
 
 ## Stop
 

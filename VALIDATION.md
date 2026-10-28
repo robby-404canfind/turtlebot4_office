@@ -55,3 +55,27 @@ Preparation failures were retained separately from successful final runs: aggres
 Lyrical DWB does not consume the historical FollowPath.transform_tolerance or FollowPath.stateful settings; those keys were removed from the tuning configuration. FeasiblePathHandler obtains the transform tolerance from the local costmap (0.3 s here). Goal-checker stateful behavior is a separate active setting.
 
 Dependency checks and builds passed. Actual Ubuntu/RViz screens were inspected through RustDesk. Navigation lifecycle shutdown was requested with simulation time running before SIGINT; no tracked descendants remained. Upstream container/bridge/RViz shutdown diagnostics are distinguished from the successful runtime exercises in the private validation record.
+
+## 0.3.0: behaviors and BT Navigator
+
+Validated on 2026-10-28 with Nav2 1.5.2 and BehaviorTree.CPP 4.10.0. The Ch01 default navigation and Ch02 tuning profiles are unchanged. The new `behavior.launch.py` starts the complete `config/behavior.yaml` profile and its dedicated RViz configuration.
+
+| Check | Observed result |
+| --- | --- |
+| DriveOnHeading, 1 m at 0.2 m/s in open space | SUCCEEDED, actual travel 1.021 m, positive forward displacement, then zero velocity |
+| BackUp, -0.5 m at 0.2 m/s | SUCCEEDED, actual travel 0.522 m and negative forward displacement, then zero velocity |
+| Spin, 3.14 rad | SUCCEEDED, actual accumulated rotation 3.116 rad, then zero velocity |
+| Wait, 3 s | SUCCEEDED, no translation or rotation |
+| AssistedTeleop, 0.2 m/s for 2 simulation seconds | Actual forward displacement 0.401 m; explicit zero input followed by preempt completed successfully and stopped |
+| Corrected BT with a specified path | NavigateToPose to map (6, 4), yaw 0 succeeded; actual movement and stop confirmed |
+| New complete profile with the default BT | Fresh default spawn/AMCL seed, NavigateToPose to (6, 4), yaw 0 succeeded, actual motion and zero final velocity confirmed |
+
+Actual movement was observed from Gazebo model poses independently of action status and odometry, and the Ubuntu RViz/robot heading were inspected through RustDesk. Natural localization and wheel-odometry differences are retained.
+
+Historical configuration failures were reproduced before correction: `SequenceStar` was not recognized (BT error 9001); an explicitly missing XML file failed with 9001; the removed `error_code_names` parameter prevented navigator configuration. Its isolated upstream node also faulted during cleanup after that configuration failure. The original `enable_stamped_cmd_vel: false` produced Twist, incompatible with this profile's TwistStamped pipeline. The active keys are `transform_tolerance` and navigator-scoped blackboard IDs.
+
+From the default spawn the original 1 m forward command correctly stopped after approximately 0.281 m because the costmap predicted a collision. Moving to open space allowed the same distance and speed to succeed; collision checks and command difficulty were not reduced.
+
+An attempt to reload the RViz configuration in a running RViz instance raised a duplicate `base_frame` parameter error in upstream code. Launching a fresh RViz with the supplied configuration displayed correctly. Runtime verification is separate from this reload limitation and upstream shutdown diagnostics.
+
+An explicitly empty `plugin_lib_names: []` entry triggered a launch parameter tuple-conversion error in the current composed launch. The final profile omits that optional key and uses Nav2's declared empty default for additional libraries. Built-in BT nodes still load automatically.
